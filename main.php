@@ -2,6 +2,7 @@
 <?php
 
 require_once './Raylib.php';
+define('RAYLIB_FFI', Raylib::getFFI());
 require_once './Color.php';
 require_once './utils.php';
 
@@ -9,7 +10,6 @@ define('WIDTH', 800);
 define('HEIGHT', 600);
 define('TARGET_FPS', 60);
 define('WINDOW_TITLE', "din mor er grim");
-define('RAYLIB_FFI', Raylib::getFFI());
 
 function main(): int
 {

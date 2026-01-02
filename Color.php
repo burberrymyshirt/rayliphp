@@ -37,13 +37,13 @@ class Color {
     ) {}
 
     public function toC(): \FFI\CData {
-        $c = Raylib::getFFI()->new('struct Color');
-        \FFI::memcpy($c, pack('C4', ...array_values(get_object_vars($this))), 4);
-        return $c;
+        return self::makeC(...array_values(get_object_vars));
     }
 
     public static function makeC(array $rgba): \FFI\CData {
-        return new self(...$rgba)->toC();
+        $c = RAYLIB_FFI->new('struct Color');
+        \FFI::memcpy($c, pack('C4', ...$rgba), 4);
+        return $c;
     }
 }
 ?>
