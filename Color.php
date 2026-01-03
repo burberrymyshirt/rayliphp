@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
+use \FFI\CData;
+
 //default predefined raylib colors
 define('LIGHTGRAY', Color::makeC([200, 200, 200, 255]));
 define('GRAY', Color::makeC([130, 130, 130, 255]));
@@ -36,13 +40,13 @@ class Color {
         protected int $a,
     ) {}
 
-    public function toC(): \FFI\CData {
-        return self::makeC(...array_values(get_object_vars));
+    public function toC(): CData {
+        return self::makeC(...get_object_vars());
     }
 
-    public static function makeC(array $rgba): \FFI\CData {
-        $c = RAYLIB_FFI->new('struct Color');
-        \FFI::memcpy($c, pack('C4', ...$rgba), 4);
+    public static function makeC(array $rgba): CData {
+        $c = RL_FFI->new('struct Color');
+        FFI::memcpy(FFI::addr($c), pack('C4', ...array_values($rgba)), FFI::sizeof($c));
         return $c;
     }
 }
