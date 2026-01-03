@@ -75,6 +75,10 @@ function handle_keypress(GameState &$state): void {
         $direction->addInPlace($key_pressed);
     }
     if (! $direction->isNull()) {
+        // TODO: Add collision (note on floating pointer precision, as that can mess with collision)
+        //  Collision might also be the perfect way to start adding structures
+        //  and sections, as we can model the perimeter of the open window to such a section.
+        //  This will probably lead naturally into creating my sections later on
         $state->circle->position->addInPlace($direction->normalize()->scale($speed));
     }
 }
