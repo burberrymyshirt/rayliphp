@@ -8,6 +8,8 @@ use \FFI\CData;
 // raylib vectors, as it is probably pretty expensive to keep calling the toC()
 // function to use as a parameter to all the vector functions.
 // It is more idiomatic php code, but that is not necessarily what wee are going for.
+//
+// I don't even think it matters that much, this file has just become way too messy way too quickly
 class Vector2 {
     public function __construct(
         public float $x = 0.0,
