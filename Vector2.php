@@ -52,6 +52,9 @@ class Vector2 {
     }
 
     public function normalize(): self {
+        if ($this->isNull()) {
+            return new Vector2;
+        }
         $r = clone $this;
         $v = pow($r->x, 2) + pow($r->y, 2)
             |> sqrt(...);
@@ -61,6 +64,9 @@ class Vector2 {
     }
 
     public function normalizeInPlace(): self {
+        if ($this->isNull()) {
+            return $this;
+        }
         $v = pow($this->x, 2) + pow($this->y, 2)
             |> sqrt(...);
         $this->x = $this->x / $v;
