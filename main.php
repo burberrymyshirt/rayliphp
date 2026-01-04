@@ -55,41 +55,43 @@ function main(): int
 }
 
 function handle_keypress(GameState &$state): void {
-    // TODO: scale by time and not the fps of raylib
-    $speed = 5;
-    $keys_pressed = [];
-    if (Raylib::isKeyDown(KeyboardKey::KEY_UP)) {
-        $keys_pressed[] = DIR_UP;
-    }
-    if (Raylib::isKeyDown(KeyboardKey::KEY_DOWN)) {
-        $keys_pressed[] = DIR_DOWN;
-    }
-    if (Raylib::isKeyDown(KeyboardKey::KEY_RIGHT)) {
-        $keys_pressed[] = DIR_RIGHT;
-    }
-    if (Raylib::isKeyDown(KeyboardKey::KEY_LEFT)) {
-        $keys_pressed[] = DIR_LEFT;
-    }
-    $direction = new Vector2();
-    foreach ($keys_pressed as $key_pressed) {
-        $direction->addInPlace($key_pressed);
-    }
-    if (! $direction->isNull()) {
-        // TODO: Add collision (note on floating pointer precision, as that can mess with collision)
-        //  Collision might also be the perfect way to start adding structures
-        //  and sections, as we can model the perimeter of the open window to such a section.
-        //  This will probably lead naturally into creating my sections later on
-        $state->circle->position->addInPlace($direction->normalize()->scale($speed));
+    // handle movement
+    {
+        // TODO: scale by time and not the fps of raylib
+        $speed = 5;
+        $keys_pressed = [];
+        if (Raylib::isKeyDown(KeyboardKey::KEY_UP)) {
+            $keys_pressed[] = DIR_UP;
+        }
+        if (Raylib::isKeyDown(KeyboardKey::KEY_DOWN)) {
+            $keys_pressed[] = DIR_DOWN;
+        }
+        if (Raylib::isKeyDown(KeyboardKey::KEY_RIGHT)) {
+            $keys_pressed[] = DIR_RIGHT;
+        }
+        if (Raylib::isKeyDown(KeyboardKey::KEY_LEFT)) {
+            $keys_pressed[] = DIR_LEFT;
+        }
+        $direction = new Vector2;
+        foreach ($keys_pressed as $key_pressed) {
+            $direction = $direction->add($key_pressed);
+        }
+        if (! $direction->isNull()) {
+            // TODO: Add collision (note on floating pointer precision, as that can mess with collision)
+            //  Collision might also be the perfect way to start adding structures
+            //  and sections, as we can model the perimeter of the open window to such a section.
+            //  This will probably lead naturally into creating my sections later on
+            $state->circle->position = $state->circle->position->add($direction->normalize()->scale($speed));
+        }
     }
 }
 
 function draw_screen(GameState &$state): void {
     RL_FFI->BeginDrawing();
     RL_FFI->ClearBackground(RAYWHITE);
-    RL_FFI->DrawCircleV($state->circle->position->toC(), 69, BLACK);
+    RL_FFI->DrawCircleV(vector2_toc($state->circle->position), 69, BLACK);
     RL_FFI->EndDrawing();
 }
-
 
 class GameState {
     public function __construct(

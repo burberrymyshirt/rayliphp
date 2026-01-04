@@ -32,6 +32,12 @@ class Raylib {
                     float y;
                 } Vector2;
 
+                typedef struct Vector3 {
+                    float x;
+                    float y;
+                    float z;
+                } Vector3;
+
                 void InitWindow(int width, int height, const char *title);
                 bool WindowShouldClose();
                 void CloseWindow(void);
