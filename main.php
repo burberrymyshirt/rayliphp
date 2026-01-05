@@ -34,6 +34,9 @@ define('DIR_DOWN', new Vector2(0, 1));
 define('DIR_LEFT', new Vector2(-1, 0));
 define('DIR_RIGHT', new Vector2(1, 0));
 
+define('DIR_FORWARD', new Vector2(0, -1));
+define('DIR_BACKWARD', new Vector2(0, 1));
+
 function main(): int
 {
     // game init
@@ -46,12 +49,33 @@ function main(): int
     // event loop
     while (! RL_FFI->WindowShouldClose()) {
         handle_keypress($state);
-        draw_screen($state);
+        draw_minimap($state);
+        // draw_screen($state);
     }
 
     // cleanup
     RL_FFI->CloseWindow();
     return 0;
+}
+
+function draw_minimap(GameState &$state): void {
+    // $state->me->camera->direction
+    RL_FFI->BeginDrawing();
+    RL_FFI->ClearBackground(RAYWHITE);
+    $level = $state->level;
+    // draw level
+    foreach ($level->tiles as $row_num => $row) {
+        foreach ($row as $col_num => $col) {
+            if ($col === 1) {
+                RL_FFI->DrawRectangle($row_num*$level->tileWidth(), $col_num*$level->tileHeight(), $level->tileWidth(), $level->tileHeight(), BLACK);
+            } else {
+                RL_FFI->DrawRectangleLines($row_num*$level->tileWidth(), $level->tileHeight(), $level->tileWidth(), $level->tileHeight(), BLACK);
+            }
+        }
+    }
+    $size = 10;
+    RL_FFI->DrawRectangle($state->me->position->x - $size/2, $state->me->position->y - $size/2, $size, $size, BLUE);
+    RL_FFI->EndDrawing();
 }
 
 function handle_keypress(GameState &$state): void {
@@ -73,41 +97,109 @@ function handle_keypress(GameState &$state): void {
             $keys_pressed[] = DIR_LEFT;
         }
         $direction = new Vector2;
+        // TODO: add movement for 3d camera instead
         foreach ($keys_pressed as $key_pressed) {
             $direction = $direction->add($key_pressed);
         }
-        if (! $direction->isNull()) {
-            // TODO: Add collision (note on floating pointer precision, as that can mess with collision)
-            //  Collision might also be the perfect way to start adding structures
-            //  and sections, as we can model the perimeter of the open window to such a section.
-            //  This will probably lead naturally into creating my sections later on
-            $state->circle->position = $state->circle->position->add($direction->normalize()->scale($speed));
-        }
+        $state->me->position = $state->me->position->add($direction);
     }
 }
 
 function draw_screen(GameState &$state): void {
     RL_FFI->BeginDrawing();
     RL_FFI->ClearBackground(RAYWHITE);
-    RL_FFI->DrawCircleV(vector2_toc($state->circle->position), 69, BLACK);
+
+    $sections = $state->sections;
+    foreach ($sections as $section) {
+        if ($state->me->camera->canSee($section)) {
+            $section;
+        }
+    }
+
     RL_FFI->EndDrawing();
 }
 
 class GameState {
     public function __construct(
-        public Circle $circle,
+        public Player $me,
+        /** @var array<Section> */
+        public Level $level,
     ) {}
 
+    // public static function init(): self {
+    //     $level = Level::init();
+    //     return new self(
+    //         new Player(
+    //             new Camera(DIR_FORWARD, 1),
+    //         ),
+    //         $level,
+    //     );
+    // }
     public static function init(): self {
-        return new self(new Circle(new Vector2(WIDTH/2, HEIGHT/2), 69));
+        $player = new Player(new Camera(new Vector2, 1), new Vector2(WIDTH/2, HEIGHT/2));
+        $map = Level::init();
+        return new self(
+            $player,
+            $map,
+        );
     }
 }
 
-class Circle {
+class Player {
     public function __construct(
+        public Camera $camera,
         public Vector2 $position,
-        public int $diameter,
     ) {}
+}
+
+class Level {
+    public function __construct(
+        /** @var array<array<int>> */
+        public array $tiles,
+    ) {}
+
+    public static function init(): self {
+        return new self([
+            [1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1],
+        ]);
+    }
+
+    public function height(): int {
+        return count(array_first($this->tiles));
+    }
+
+    public function width(): int {
+        return count($this->tiles);
+    }
+
+    public function tileHeight(): int {
+        return $this->height()/10;
+    }
+
+    public function tileWidth(): int {
+        return $this->width()/10;
+    }
+}
+
+class Camera {
+    public function __construct(
+        public Vector2 $direction,
+        public int $fov,
+    ) {}
+
+    public function canSee(Section $section) {
+        // shoot ray
+        $fov = $this->fov;
+    }
 }
 
 exit(main());
