@@ -55,13 +55,14 @@ class Raylib {
                 bool IsKeyReleased(int key);
                 bool IsKeyUp(int key);
                 int GetCharPressed(void);
+                void SetExitKey(int key);
                 // TODO: This could be useful, but it is only in the 5.6-beta
                 // build, not the 5.5 we are running
                 // const char *GetKeyName(int key);
-                void SetExitKey(int key);
 
                 void ClearBackground(Color color);
                 void DrawRectangle(int posX, int posY, int width, int height, Color color);
+                void DrawRectangleLines(int posX, int posY, int width, int height, Color color);
                 void DrawPixel(int posX, int posY, Color color);
                 void DrawPixelV(Vector2 vector, Color color);
                 void DrawCircleV(Vector2 center, float radius, Color color);

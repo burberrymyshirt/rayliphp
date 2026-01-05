@@ -30,7 +30,7 @@ class Vector2 {
 
     public function normalize(): self {
         // maybe do an assert here, and make the user handle the case as to not hide bugs?
-        if ($this->isNull()) {
+        if ($this->isZero()) {
             return new Vector2;
         }
         $v = pow($this->x, 2) + pow($this->y, 2)
@@ -38,8 +38,16 @@ class Vector2 {
         return new self($this->x / $v, $this->y / $v);
     }
 
-    /** Checks if the current vector is a null vector */
-    public function isNull(): bool {
+    public function cross(self $in): float {
+        return ($this->x * $in->y) - ($this->y * $in->x);
+    }
+
+    public function dot(self $in): float {
+        return ($this->x * $in->x) + ($this->y * $in->y);
+    }
+
+    /** Checks if the current vector is a zero vector */
+    public function isZero(): bool {
         // NOTE: might be some floating point precision issues, once we go subpixel
         return $this->x === 0.0 && $this->y === 0.0;
     }
@@ -55,7 +63,7 @@ function vector2_makec(float $x = 0.0, float $y = 0.0): CData {
     return $c;
 }
 
-function vector2_toc(Vector2 $vector): \FFI\CData {
+function vector2_toc(Vector2 $vector): CData {
     $c = RL_FFI->new('struct Vector2');
     $c->x = $vector->x;
     $c->y = $vector->y;

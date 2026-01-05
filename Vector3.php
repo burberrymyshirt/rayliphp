@@ -30,7 +30,7 @@ class Vector3 {
     }
 
     public function normalize(): self {
-        if ($this->isNull()) {
+        if ($this->isZero()) {
             return new Vector3;
         }
         $v = [pow($this->x, 2), pow($this->y, 2), pow($this->z, 2)]
@@ -39,8 +39,12 @@ class Vector3 {
         return new self($this->x / $v, $this->y / $v, $this->z / $v);
     }
 
-    /** Checks if the current vector is a null vector */
-    public function isNull(): bool {
+    public function dot(self $in): float {
+        return ($this->x * $in->x) + ($this->y * $in->y) + ($this->z * $in->z);
+    }
+
+    /** Checks if the current vector is a zero vector */
+    public function isZero(): bool {
         // NOTE: might be some floating point precision issues, once we go subpixel
         return $this->x === 0.0 && $this->y === 0.0 && $this->z === 0.0;
     }
@@ -57,7 +61,7 @@ function vector3_makec(float $x = 0.0, float $y = 0.0, float $z = 0.0): CData {
     return $c;
 }
 
-function vector3_toc(Vector3 $vector): \FFI\CData {
+function vector3_toc(Vector3 $vector): CData {
     $c = RL_FFI->new('struct Vector3');
     $c->x = $vector->x;
     $c->y = $vector->y;

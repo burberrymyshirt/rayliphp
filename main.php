@@ -16,19 +16,19 @@ define('RL_WRAPPER', Raylib::class);
 
 require_once './Color.php';
 require_once './Vector2.php';
-// require_once './Vector3.php'; //TODO: implement
+require_once './Vector3.php';
 
 define('WIDTH', 1200);
 define('HEIGHT', 900);
 define('TARGET_FPS', 60);
-define('WINDOW_TITLE', "din mor er grim");
+define('WINDOW_TITLE', 'din mor er grim');
 
 // TODO: we keep everything in the php wrapper for now,
 // but consider going full C style with it. I don't know which approach is faster.
-// define('DIR_UP', makec_vector2(0, 1));
-// define('DIR_DOWN', makec_vector2(0, -1));
-// define('DIR_LEFT', makec_vector2(-1, 0));
-// define('DIR_RIGHT', makec_vector2(1, 0));
+// define('DIR_UP', vector2_makec(0, 1));
+// define('DIR_DOWN', vector2_makec(0, -1));
+// define('DIR_LEFT', vector2_makec(-1, 0));
+// define('DIR_RIGHT', vector2_makec(1, 0));
 define('DIR_UP', new Vector2(0, -1));
 define('DIR_DOWN', new Vector2(0, 1));
 define('DIR_LEFT', new Vector2(-1, 0));
