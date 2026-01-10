@@ -48,7 +48,7 @@ function main(): int
 
     // event loop
     while (! RL_FFI->WindowShouldClose()) {
-        handle_keypress($state);
+        update_state($state);
         draw_minimap($state);
         // draw_screen($state);
     }
@@ -59,50 +59,90 @@ function main(): int
 }
 
 function draw_minimap(GameState &$state): void {
-    // $state->me->camera->direction
     RL_FFI->BeginDrawing();
     RL_FFI->ClearBackground(RAYWHITE);
     $level = $state->level;
     // draw level
     foreach ($level->tiles as $row_num => $row) {
         foreach ($row as $col_num => $col) {
-            if ($col === 1) {
-                RL_FFI->DrawRectangle($row_num*$level->tileWidth(), $col_num*$level->tileHeight(), $level->tileWidth(), $level->tileHeight(), BLACK);
+            if ($col === Level::TILE_TYPE_WALL) {
+                RL_FFI->DrawRectangle(
+                    $row_num*$level->tileWidth(),
+                    $col_num*$level->tileHeight(),
+                    $level->tileWidth(),
+                    $level->tileHeight(),
+                    BLACK
+                );
             } else {
-                RL_FFI->DrawRectangleLines($row_num*$level->tileWidth(), $level->tileHeight(), $level->tileWidth(), $level->tileHeight(), BLACK);
+                RL_FFI->DrawRectangleLines(
+                    $row_num*$level->tileWidth(),
+                    $col_num*$level->tileHeight(),
+                    $level->tileWidth(),
+                    $level->tileHeight(),
+                    BLACK
+                );
             }
         }
     }
-    $size = 10;
-    RL_FFI->DrawRectangle($state->me->position->x - $size/2, $state->me->position->y - $size/2, $size, $size, BLUE);
+
+    $player_size = $state->me->size;
+    RL_FFI->DrawRectangle(
+        $state->me->position->x - $player_size/2,
+        $state->me->position->y - $player_size/2,
+        $player_size,
+        $player_size,
+        BLUE,
+    );
     RL_FFI->EndDrawing();
 }
 
-function handle_keypress(GameState &$state): void {
+function update_state(GameState &$state): void {
     // handle movement
     {
         // TODO: scale by time and not the fps of raylib
         $speed = 5;
         $keys_pressed = [];
         if (Raylib::isKeyDown(KeyboardKey::KEY_UP)) {
-            $keys_pressed[] = DIR_UP;
+            $keys_pressed[] = DIR_UP->scale($speed);
         }
         if (Raylib::isKeyDown(KeyboardKey::KEY_DOWN)) {
-            $keys_pressed[] = DIR_DOWN;
+            $keys_pressed[] = DIR_DOWN->scale($speed);
         }
         if (Raylib::isKeyDown(KeyboardKey::KEY_RIGHT)) {
-            $keys_pressed[] = DIR_RIGHT;
+            $keys_pressed[] = DIR_RIGHT->scale($speed);
         }
         if (Raylib::isKeyDown(KeyboardKey::KEY_LEFT)) {
-            $keys_pressed[] = DIR_LEFT;
+            $keys_pressed[] = DIR_LEFT->scale($speed);
         }
         $direction = new Vector2;
         // TODO: add movement for 3d camera instead
         foreach ($keys_pressed as $key_pressed) {
             $direction = $direction->add($key_pressed);
         }
-        $state->me->position = $state->me->position->add($direction);
+        if (! check_collision($state, $direction)) {
+            $state->me->position = $state->me->position->add($direction);
+        }
     }
+}
+
+function check_collision(GameState &$state, Vector2 $pending_movement): bool {
+    $player_pos = $state->me->position;
+    $player_size = $state->me->size;
+
+    foreach ($state->level->tiles as $row_num => $row) {
+        foreach ($row as $col_num => $col) {
+            if ($col === Level::TILE_TYPE_WALL) {
+                $tile_pos = new Vector2($row_num, $col_num);
+                $player_pos->x - $player_size/2;
+                $player_pos->y - $player_size/2;
+                if ($player_pos) {
+
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 function draw_screen(GameState &$state): void {
@@ -149,10 +189,14 @@ class Player {
     public function __construct(
         public Camera $camera,
         public Vector2 $position,
+        public int $size = 10,
     ) {}
 }
 
 class Level {
+    const TILE_TYPE_EMPTY = 0;
+    const TILE_TYPE_WALL = 1;
+
     public function __construct(
         /** @var array<array<int>> */
         public array $tiles,
@@ -182,11 +226,11 @@ class Level {
     }
 
     public function tileHeight(): int {
-        return $this->height()/10;
+        return HEIGHT/$this->height();
     }
 
     public function tileWidth(): int {
-        return $this->width()/10;
+        return WIDTH/$this->width();
     }
 }
 
