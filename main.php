@@ -71,7 +71,7 @@ function draw_minimap(GameState &$state): void {
                     $col_num*$level->tileHeight(),
                     $level->tileWidth(),
                     $level->tileHeight(),
-                    BLACK
+                    BLACK,
                 );
             } else {
                 RL_FFI->DrawRectangleLines(
@@ -79,18 +79,19 @@ function draw_minimap(GameState &$state): void {
                     $col_num*$level->tileHeight(),
                     $level->tileWidth(),
                     $level->tileHeight(),
-                    BLACK
+                    BLACK,
                 );
             }
         }
     }
 
-    $player_size = $state->me->size;
+    $player_width = player_width($state);
+    $player_height = player_height($state);
     RL_FFI->DrawRectangle(
-        $state->me->position->x - $player_size/2,
-        $state->me->position->y - $player_size/2,
-        $player_size,
-        $player_size,
+        $state->me->position->x,
+        $state->me->position->y,
+        $player_width,
+        $player_height,
         BLUE,
     );
     RL_FFI->EndDrawing();
@@ -100,45 +101,75 @@ function update_state(GameState &$state): void {
     // handle movement
     {
         // TODO: scale by time and not the fps of raylib
-        $speed = 5;
+        $player_speed = 5;
+        $repel_speed = 0.25;
         $keys_pressed = [];
         if (Raylib::isKeyDown(KeyboardKey::KEY_UP)) {
-            $keys_pressed[] = DIR_UP->scale($speed);
+            $keys_pressed[] = DIR_UP->scale($player_speed);
         }
         if (Raylib::isKeyDown(KeyboardKey::KEY_DOWN)) {
-            $keys_pressed[] = DIR_DOWN->scale($speed);
+            $keys_pressed[] = DIR_DOWN->scale($player_speed);
         }
         if (Raylib::isKeyDown(KeyboardKey::KEY_RIGHT)) {
-            $keys_pressed[] = DIR_RIGHT->scale($speed);
+            $keys_pressed[] = DIR_RIGHT->scale($player_speed);
         }
         if (Raylib::isKeyDown(KeyboardKey::KEY_LEFT)) {
-            $keys_pressed[] = DIR_LEFT->scale($speed);
+            $keys_pressed[] = DIR_LEFT->scale($player_speed);
         }
         $direction = new Vector2;
         // TODO: add movement for 3d camera instead
         foreach ($keys_pressed as $key_pressed) {
             $direction = $direction->add($key_pressed);
         }
-        if (! check_collision($state, $direction)) {
-            $state->me->position = $state->me->position->add($direction);
+
+        try {
+            if (! will_player_collide_with_wall($state, $direction)) {
+                $state->me->position = $state->me->position->add($direction);
+            } else {
+                $opposite_direction = $direction->scale(-1)->scale($repel_speed);
+                $state->me->position = $state->me->position->add($opposite_direction);
+            }
+        } catch (OutOfBoundsException $ex) {
+            dump($ex);
         }
     }
 }
 
-function check_collision(GameState &$state, Vector2 $pending_movement): bool {
+function will_player_collide_with_wall(GameState &$state, Vector2 $pending_movement): bool {
     $player_pos = $state->me->position;
     $player_size = $state->me->size;
+    $level = $state->level;
 
-    foreach ($state->level->tiles as $row_num => $row) {
-        foreach ($row as $col_num => $col) {
-            if ($col === Level::TILE_TYPE_WALL) {
-                $tile_pos = new Vector2($row_num, $col_num);
-                $player_pos->x - $player_size/2;
-                $player_pos->y - $player_size/2;
-                if ($player_pos) {
+    $tile_width = $level->tileWidth();
+    $tile_height = $level->tileHeight();
 
-                }
-            }
+    // $player_pos_y = (int)(($player_pos->y / $player_size) / $level->height());
+    // $player_pos_x = (int)(($player_pos->x / $player_size) / $level->width());
+
+    $player_width = player_width($state);
+    $player_height = player_height($state);
+
+    $player_pos_y = (int)($player_pos->y / $tile_width);
+    $player_pos_x = (int)($player_pos->x / $tile_height);
+    $new_pos = $pending_movement->add($player_pos);
+    $corners = [
+        ['x' => $new_pos->x, 'y' => $new_pos->y], // top-left
+        ['x' => $new_pos->x + $player_width, 'y' => $new_pos->y], // top-right
+        ['x' => $new_pos->x, 'y' => $new_pos->y + $player_height], // bottom-left
+        ['x' => $new_pos->x + $player_width, 'y' => $new_pos->y + $player_height], // bottom-right
+    ];
+    foreach ($corners as $corner) {
+        $tile_x = (int)($corner['x'] / $tile_width);
+        $tile_y = (int)($corner['y'] / $tile_height);
+
+        $tile = $level->getTile($tile_x, $tile_y);
+
+        if (is_null($tile)) {
+            throw new OutOfBoundsException('Tried to access an undefined tile when checking collision');
+        }
+
+        if (Level::TILE_TYPE_WALL === $tile) {
+            return true;
         }
     }
 
@@ -193,6 +224,14 @@ class Player {
     ) {}
 }
 
+function player_height(GameState $state): int {
+    return $state->level->tileHeight() / $state->me->size;
+}
+
+function player_width(GameState $state): int {
+    return $state->level->tileWidth() / $state->me->size;
+}
+
 class Level {
     const TILE_TYPE_EMPTY = 0;
     const TILE_TYPE_WALL = 1;
@@ -217,20 +256,30 @@ class Level {
         ]);
     }
 
-    public function height(): int {
+    public function levelHeight(): int {
         return count(array_first($this->tiles));
     }
 
-    public function width(): int {
+    public function levelWidth(): int {
         return count($this->tiles);
     }
 
     public function tileHeight(): int {
-        return HEIGHT/$this->height();
+        return HEIGHT/$this->levelHeight();
     }
 
     public function tileWidth(): int {
-        return WIDTH/$this->width();
+        return WIDTH/$this->levelWidth();
+    }
+
+    /**
+    * @return int The tile type of the given coordinates, and null if it doesn't exist
+    */
+    public function getTile(int $x, int $y): ?int {
+        if (isset($this->tiles[$y][$x])) {
+            return $this->tiles[$y][$x];
+        }
+        return null;
     }
 }
 
