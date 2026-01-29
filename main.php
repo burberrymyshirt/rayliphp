@@ -59,35 +59,40 @@ function main(): int
 }
 
 function draw_screen(GameState &$state): void {
+    // TODO: we need to unify the scaling in here. Right now tiles are streteched,
+    //  and the player is a static size. They should be drawn in the same way, as
+    //  it would probably be ideal in case we want to change the resolution later.
     RL_FFI->BeginDrawing();
-    RL_FFI->ClearBackground(RAYWHITE);
-    $level = $state->level;
-    // draw level
-    foreach ($level->tiles as $row_num => $row) {
-        foreach ($row as $col_num => $col) {
-            $function = match ($col) {
-                Level::TILE_TYPE_WALL => 'DrawRectangle',
-                Level::TILE_TYPE_EMPTY => 'DrawRectangleLines',
-                default => throw new RuntimeException('encountered unhandled level type'),
-            };
-            // This only works for this kind of draw functions 🙂
-            call_user_func([RL_FFI, $function],
-                $row_num*$level->tileWidth(),
-                $col_num*$level->tileHeight(),
-                $level->tileWidth(),
-                $level->tileHeight(),
-                BLACK,
-            );
+    {
+        RL_FFI->ClearBackground(RAYWHITE);
+        $level = $state->level;
+        // draw level
+        foreach ($level->tiles as $row_num => $row) {
+            foreach ($row as $col_num => $col) {
+                $function = match ($col) {
+                    Level::TILE_TYPE_WALL => 'DrawRectangle',
+                    Level::TILE_TYPE_EMPTY => 'DrawRectangleLines',
+                    default => throw new RuntimeException('encountered unhandled level type'),
+                };
+                // This only works for this kind of draw functions 🙂
+                call_user_func([RL_FFI, $function],
+                    $row_num*$level->tileWidth(),
+                    $col_num*$level->tileHeight(),
+                    $level->tileWidth(),
+                    $level->tileHeight(),
+                    BLACK,
+                );
+            }
         }
-    }
 
-    RL_FFI->DrawRectangle(
-        $state->me->position->x,
-        $state->me->position->y,
-        $state->me->size,
-        $state->me->size,
-        BLUE,
-    );
+        RL_FFI->DrawRectangle(
+            $state->me->position->x,
+            $state->me->position->y,
+            $state->me->size,
+            $state->me->size,
+            BLUE,
+        );
+    }
     RL_FFI->EndDrawing();
 }
 
