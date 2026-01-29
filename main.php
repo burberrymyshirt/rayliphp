@@ -49,7 +49,7 @@ function main(): int
     // event loop
     while (! RL_FFI->WindowShouldClose()) {
         update_state($state);
-        draw_minimap($state);
+        draw_screen($state);
         // draw_screen($state);
     }
 
@@ -58,40 +58,34 @@ function main(): int
     return 0;
 }
 
-function draw_minimap(GameState &$state): void {
+function draw_screen(GameState &$state): void {
     RL_FFI->BeginDrawing();
     RL_FFI->ClearBackground(RAYWHITE);
     $level = $state->level;
     // draw level
     foreach ($level->tiles as $row_num => $row) {
         foreach ($row as $col_num => $col) {
-            if ($col === Level::TILE_TYPE_WALL) {
-                RL_FFI->DrawRectangle(
-                    $row_num*$level->tileWidth(),
-                    $col_num*$level->tileHeight(),
-                    $level->tileWidth(),
-                    $level->tileHeight(),
-                    BLACK,
-                );
-            } else {
-                RL_FFI->DrawRectangleLines(
-                    $row_num*$level->tileWidth(),
-                    $col_num*$level->tileHeight(),
-                    $level->tileWidth(),
-                    $level->tileHeight(),
-                    BLACK,
-                );
-            }
+            $function = match ($col) {
+                Level::TILE_TYPE_WALL => 'DrawRectangle',
+                Level::TILE_TYPE_EMPTY => 'DrawRectangleLines',
+                default => throw new RuntimeException('encountered unhandled level type'),
+            };
+            // This only works for this kind of draw functions 🙂
+            call_user_func([RL_FFI, $function],
+                $row_num*$level->tileWidth(),
+                $col_num*$level->tileHeight(),
+                $level->tileWidth(),
+                $level->tileHeight(),
+                BLACK,
+            );
         }
     }
 
-    $player_width = player_width($state);
-    $player_height = player_height($state);
     RL_FFI->DrawRectangle(
         $state->me->position->x,
         $state->me->position->y,
-        $player_width,
-        $player_height,
+        $state->me->size,
+        $state->me->size,
         BLUE,
     );
     RL_FFI->EndDrawing();
@@ -136,30 +130,17 @@ function update_state(GameState &$state): void {
 
 function will_player_collide_with_wall(GameState &$state, Vector2 $pending_movement): bool {
     $player_pos = $state->me->position;
-    $player_size = $state->me->size;
     $level = $state->level;
 
     $tile_width = $level->tileWidth();
     $tile_height = $level->tileHeight();
 
-    // $player_pos_y = (int)(($player_pos->y / $player_size) / $level->height());
-    // $player_pos_x = (int)(($player_pos->x / $player_size) / $level->width());
-
-    $player_width = player_width($state);
-    $player_height = player_height($state);
-
-    $player_pos_y = (int)($player_pos->y / $tile_width);
-    $player_pos_x = (int)($player_pos->x / $tile_height);
     $new_pos = $pending_movement->add($player_pos);
-    $corners = [
-        ['x' => $new_pos->x, 'y' => $new_pos->y], // top-left
-        ['x' => $new_pos->x + $player_width, 'y' => $new_pos->y], // top-right
-        ['x' => $new_pos->x, 'y' => $new_pos->y + $player_height], // bottom-left
-        ['x' => $new_pos->x + $player_width, 'y' => $new_pos->y + $player_height], // bottom-right
-    ];
+    $corners = $state->me->getCorners($new_pos);
     foreach ($corners as $corner) {
-        $tile_x = (int)($corner['x'] / $tile_width);
-        $tile_y = (int)($corner['y'] / $tile_height);
+        ['x'=>$x, 'y'=>$y] = $corner;
+        $tile_x = (int)($x / $tile_width);
+        $tile_y = (int)($y / $tile_height);
 
         $tile = $level->getTile($tile_x, $tile_y);
 
@@ -173,20 +154,6 @@ function will_player_collide_with_wall(GameState &$state, Vector2 $pending_movem
     }
 
     return false;
-}
-
-function draw_screen(GameState &$state): void {
-    RL_FFI->BeginDrawing();
-    RL_FFI->ClearBackground(RAYWHITE);
-
-    $sections = $state->sections;
-    foreach ($sections as $section) {
-        if ($state->me->camera->canSee($section)) {
-            $section;
-        }
-    }
-
-    RL_FFI->EndDrawing();
 }
 
 class GameState {
@@ -221,14 +188,16 @@ class Player {
         public Vector2 $position,
         public int $size = 10,
     ) {}
-}
 
-function player_height(GameState $state): int {
-    return $state->level->tileHeight() / $state->me->size;
-}
-
-function player_width(GameState $state): int {
-    return $state->level->tileWidth() / $state->me->size;
+    public function getCorners(Vector2 $position): array {
+        $player_size = $this->size;
+        return [
+            'top_left' => ['x' => $position->x, 'y' => $position->y],
+            'top_right' => ['x' => $position->x + $player_size, 'y' => $position->y],
+            'bottom_left' => ['x' => $position->x, 'y' => $position->y + $player_size],
+            'bottom_right' => ['x' => $position->x + $player_size, 'y' => $position->y + $player_size],
+        ];
+    }
 }
 
 class Level {
